@@ -1,0 +1,35 @@
+BrowserFS =  in-browser file system 
+Are urmatoarele functii:
+	BFSRequire(module: "fs"): FSModule // pentru initializarea tipului de date sa fie FS
+    	BFSRequire(module: "path"): "path"
+    	BFSRequire(module: "buffer"): "buffer"
+    	BFSRequire(module: "process"): Process
+    	BFSRequire(module: "bfs_utils"): "core/util"
+    	BFSRequire(module: string): any
+
+	configure(config: FileSystemConfiguration, cb: BFSOneArgCallback): void // easily configure BrowserFS to use a variety of file system types
+	??( se alege de unde se va citi informatia din backend si apoi cu ce configuratie de exemplu daca avem fisiere.zip  il configuram intr-un anumit mod. )??
+													
+	getFileSystem(config: FileSystemConfiguration, cb: BFSCallback<FileSystem>): void // reprimieste un fisier de sistem cu o anumita configuratie
+
+	initialize(rootfs: FileSystem): FileSystem // initializeaza BorwserFS cu radacina sistemului de fisiere
+	
+	install(obj: any): void // BFSRequire devine global ( alternativa la configure ?)
+
+
+CoAp = Constrained Application Protocol 
+
+-A fost facut pentru IoT ( INternet of Things)
+-Inspirat din HTTP
+-Foloseste UDP si IP
+-UDP, metoda de transport, e rapida insa nu la fel de sigura ca TCP, TCP asteapta confirmare ca receptorul a primit mesajul, UDP trimite tot fara verificare.
+-Comunicare 1 to 1 protocol -> GET,POST,PUT,DELETE
+-Bun pentru sisteme mici,memorie RAM si ROM mica, baterie limitata, sisteme embedded ?
+-Ce e diferit fata de HTTP? 
+	-Observe ( anunta cand se schimba starea unui falg)
+	-Discovery ( trimite date despre ce dispozitive sunt conectate??)
+
+https://github.com/jvilk/browserfs
+https://jvilk.com/browserfs/1.4.1/index.html
+https://jvilk.com/browserfs/1.4.1/modules/_core_browserfs_.html#getfilesystem
+	
