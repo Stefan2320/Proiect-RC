@@ -28,7 +28,9 @@ CoAp = Constrained Application Protocol
 -Ce e diferit fata de HTTP? 
 	-Observe ( anunta cand se schimba starea unui falg)
 	-Discovery ( trimite date despre ce dispozitive sunt conectate??)
-
+-CoAP defines four types of messages:
+   Confirmable, Non-confirmable, Acknowledgement, Reset
+   
 https://github.com/jvilk/browserfs
 https://jvilk.com/browserfs/1.4.1/index.html
 https://jvilk.com/browserfs/1.4.1/modules/_core_browserfs_.html#getfilesystem
