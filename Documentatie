@@ -21,7 +21,7 @@ CoAp = Constrained Application Protocol
 
 -A fost facut pentru IoT ( INternet of Things)
 -Inspirat din HTTP
--Foloseste UDP si IP
+-Foloseste UDP (si IP)?
 -UDP, metoda de transport, e rapida insa nu la fel de sigura ca TCP, TCP asteapta confirmare ca receptorul a primit mesajul, UDP trimite tot fara verificare.
 -Comunicare 1 to 1 protocol -> GET,POST,PUT,DELETE
 -Bun pentru sisteme mici,memorie RAM si ROM mica, baterie limitata, sisteme embedded ?
