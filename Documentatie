@@ -34,4 +34,23 @@ CoAp = Constrained Application Protocol
 https://github.com/jvilk/browserfs
 https://jvilk.com/browserfs/1.4.1/index.html
 https://jvilk.com/browserfs/1.4.1/modules/_core_browserfs_.html#getfilesystem
+https://datatracker.ietf.org/doc/html/rfc7252 - 
+
+
+--Mesaje--
+
+Request si response au un header fix de 4 bytes.
+Fiecare mesaj contine un Message ID de 16 biti folosit pentru a detecta mesajele duplicate
+
+Mesajele pot fi confirmable(CON), mesajele se trimit pana cand cel care trebuie sa primeasca trimite un Acknowledgment message(ACK) cu acelasi Message ID. Daca nu se reuseste transmisia, atunci se trimite Reset Message(RST).
+Mesajele pot fi si non-confirmable(NON), acestea nu trebue sa fie acknowledged, dar tot trebuie sa aiba un Message ID pentru a gasi duplicatele. Daca nu pot fi procesate
+receptorul poate raspunde cu un RST.
+
+---Request---
+
+Cererile pot fi atat CON cat si NON, iar daca sunt CON, atunci raspunsul poate fi transmis in mesajul de acknowledgement(acest proces se numeste piggybacked response) daca raspunsul este instant valabil. Daca raspunsul nu este gata instant, atunci se trimite un ACK gol(pentru ca clientul sa nu mai retrimita cererea), iar raspunsul se trimite cand este gata(tot sub forma unui CON).
+Daca cererile sunt NON, serverul poate raspunde cu un mesaj NON sau CON.
+
+
+
 	
