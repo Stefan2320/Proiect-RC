@@ -9,7 +9,63 @@ def string2bits(s):
 
 def bits2string(b):
     return ''.join([chr(int(x, 2)) for x in b])
+#version,type,token length
+def first_byte():
+    byte=""
+    #VERSION
+    version="01"
+    byte += version
+    # Type: CON (00), NON (01), ACK (10), RES (11)
+    type = "CON"
+    if type == "CON":
+        byte+="00"
+    elif type =="NON":
+        byte+="01"
+    elif type == "ACK":
+        byte+="10"
+    elif type =="RES":
+        byte+="11"
+    #TOKEN LENGTH
+    token_length = "0100"
 
+    byte+=token_length
+    return byte
+#code
+def second_byte():
+    #Code: Succes.content
+    byte="01000101"
+    return byte
+#third and fourth byte
+def message_ID():
+   return messageID
+def get_token():
+    return token
+def delimitation_byte():
+    byte = "11111111"
+    return byte
+def package():
+    message = "Raspuns de la server"
+    action = "Actiune executata de server"
+    request = {
+        "content":message,
+         "string":action
+    }
+    request_json = json.dumps(request)
+    return string2bits(request_json)
+def create_header():
+    header=""
+    """
+    print("fb",first_byte())
+    print(second_byte())
+    print(message_ID())
+    print(get_token())
+    print(delimitation_byte())
+    """
+    header+=first_byte()+second_byte()+message_ID()+get_token()+delimitation_byte()
+    print(header)
+    for o in package():
+        header+=o
+    return header
 def verificare_parola(username,password):
     #deschidere fisier care contine usernames si parole lista[i] username=parola
     db = open('usernames.txt', 'r')
@@ -25,20 +81,19 @@ def verificare_parola(username,password):
 
         if user == username:
             if pas == password:
-                acces = True
+                acces1 = True
             else:
-                acces = False
+                acces1 = False
             user_found = True
     if user_found == False:
-        acces = True
+        acces1 = True
         db2.write(username+"="+password+'\n')
 
-    if acces == True:
+    if acces1 == True:
         print("Acces granted!")
     else:
         print("Intruder alert!")
-    return acces
-
+    return acces1
 def receive_fct():
     global running
     contor = 0
@@ -59,11 +114,11 @@ def receive_fct():
             token_length = int(CoApVs_Type_TokenLen[4] + CoApVs_Type_TokenLen[5] + CoApVs_Type_TokenLen[6] + CoApVs_Type_TokenLen[7], 2)
             CoAp_Version= CoApVs_Type_TokenLen[0] + CoApVs_Type_TokenLen[1]
             Request_Type = CoApVs_Type_TokenLen[2] + CoApVs_Type_TokenLen[3]
-
             inceput_payload = 4 + 1 + token_length  # 4 octeti + octetul cu "11111111" + nr_octeti_token
-
             Code = primii_octeti[1]
+            global messageID
             messageID = primii_octeti[2] + primii_octeti[3]
+            global token
             token = ""
             for j in range(4, 4 + token_length):
                 token += primii_octeti[j]
@@ -86,9 +141,9 @@ def receive_fct():
             print("Adress: ", address)
             #daca acces e False se va trimite o alerta spre client!
             acces=verificare_parola(username,password)
-
-
-
+            if acces == True:
+                message = create_header()
+                s.sendto(bytes(message, encoding="utf-8"), (dip, int(dport)))
 
 
 # Citire nr port din linia de comanda
@@ -120,17 +175,16 @@ try:
 except:
     print("Eroare la pornirea thread‐ului")
     sys.exit()
-
+"""
 while True:
     try:
-        data = input("Trimite: ")
-        s.sendto(bytes(data, encoding="ascii"), (dip, int(dport)))
+        #data = input("Trimite: ")
+       #s.sendto(bytes(data, encoding="ascii"), (dip, int(dport)))
+
     except KeyboardInterrupt:
         running = False
         print("Waiting for the thread to close...")
         receive_thread.join()
         break
 
-if __name__ == "__main__":
-
-    receive_fct()
+"""
