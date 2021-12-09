@@ -61,6 +61,6 @@ def connect():
 button_frame4 = Frame(window)
 button_frame4.place(x=1400, y=200)
 connect = tk.Button(button_frame4, text="CONNECT", command=connect)
-connect.grid(row=5, column=1)
+connect.grid(row=5,column=1)
 
 window.mainloop()
