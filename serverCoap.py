@@ -4,6 +4,9 @@ import select
 import threading
 import json
 
+#mai intai ack si dupa pachet
+
+
 def string2bits(s):
     return [bin(ord(x))[2:].zfill(8) for x in s]
 
@@ -16,15 +19,7 @@ def first_byte():
     version="01"
     byte += version
     # Type: CON (00), NON (01), ACK (10), RES (11)
-    type = "CON"
-    if type == "CON":
-        byte+="00"
-    elif type =="NON":
-        byte+="01"
-    elif type == "ACK":
-        byte+="10"
-    elif type =="RES":
-        byte+="11"
+    byte+=Request_Type
     #TOKEN LENGTH
     token_length = "0100"
 
@@ -43,16 +38,24 @@ def get_token():
 def delimitation_byte():
     byte = "11111111"
     return byte
-def package():
-    message = "Raspuns de la server"
-    action = "Actiune executata de server"
+
+def package(message1 =None,content1 = None):
+    if message1!=None:
+        message = message1
+    else:
+        message="ceva"
+    if content1!=None:
+        action = content1
+    else:
+        action="altceva"
+
     request = {
         "content":message,
          "string":action
     }
     request_json = json.dumps(request)
     return string2bits(request_json)
-def create_header():
+def create_header(message =None,content = None):
     header=""
     """
     print("fb",first_byte())
@@ -61,9 +64,9 @@ def create_header():
     print(get_token())
     print(delimitation_byte())
     """
+
     header+=first_byte()+second_byte()+message_ID()+get_token()+delimitation_byte()
-    print(header)
-    for o in package():
+    for o in package(message,content):
         header+=o
     return header
 def verificare_parola(username,password):
@@ -102,7 +105,7 @@ def receive_fct():
         # Stabilim un timeout de 1 secunda
         r, _, _ = select.select([s], [], [], 1)
         if not r:
-        	contor = contor + 1
+            contor = contor + 1
         else:
             #sunt date in buffer
             dataFromClient, address = s.recvfrom(1024)
@@ -113,6 +116,7 @@ def receive_fct():
             CoApVs_Type_TokenLen = primii_octeti[0]
             token_length = int(CoApVs_Type_TokenLen[4] + CoApVs_Type_TokenLen[5] + CoApVs_Type_TokenLen[6] + CoApVs_Type_TokenLen[7], 2)
             CoAp_Version= CoApVs_Type_TokenLen[0] + CoApVs_Type_TokenLen[1]
+            global Request_Type
             Request_Type = CoApVs_Type_TokenLen[2] + CoApVs_Type_TokenLen[3]
             inceput_payload = 4 + 1 + token_length  # 4 octeti + octetul cu "11111111" + nr_octeti_token
             Code = primii_octeti[1]
@@ -141,10 +145,30 @@ def receive_fct():
             print("Adress: ", address)
             #daca acces e False se va trimite o alerta spre client!
             acces=verificare_parola(username,password)
-            if acces == True:
-                message = create_header()
-                s.sendto(bytes(message, encoding="utf-8"), (dip, int(dport)))
+            send_data(acces)
 
+
+def send_data(acces):
+    global Request_Type
+    if acces == True:
+        if Request_Type == "00":
+            random=0
+            if random == 0:
+                Request_Type = "10"
+                # content-ul va fi gol
+                message = create_header("ACK"," ")
+                s.sendto(bytes(message, encoding="utf-8"), (dip, int(dport)))
+                Request_Type = "00"
+                # aici va fi contentul
+                message1 = create_header("content1","content2")
+                s.sendto(bytes(message1, encoding="utf-8"), (dip, int(dport)))
+            else:
+                Request_Type= "10"
+                # va fi ack + content
+                message = create_header("conten1","content2")
+                s.sendto(bytes(message, encoding="utf-8"), (dip, int(dport)))
+    else:
+        s.sendto(bytes("acces denied",encoding="utf-8"),(dip, int(dport)))
 
 # Citire nr port din linia de comanda
 if len(sys.argv) != 4:
