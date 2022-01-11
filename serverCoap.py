@@ -49,27 +49,34 @@ def delimitation_byte():
     return byte
 
 def ls():
-    global currentDirectory
-    print(str(currentDirectory))
-    files_folders = [f for f in os.listdir(currentDirectory)]
+    print(os.getcwd())
+    files_folders = [f for f in os.listdir(os.getcwd())]
     return files_folders
 
 def pwd():
-    global currentDirectory
-    return currentDirectory
+    return os.getcwd()
 
 def createFile(fileName):
-    global currentDirectory
-    f = open(currentDirectory + '/' + fileName, "x")
+    f = open(os.getcwd() + '\\' + fileName, "x")
 
 def createFolder(folderName):
-    global currentDirectory
-    os.mkdir(currentDirectory + '/' + folderName)
+    os.mkdir(os.getcwd() + '\\' + folderName)
 
-def changeDirectory(newFolder):
-    global currentDirectory
-    currentDirectory += '/' + newFolder
-    print(currentDirectory)
+
+def changeDirectory(param):
+    # daca nu sunt deja in fisierul Root atunci ma mut inapoi
+    if param == '..':
+        if os.getcwd() != (original_path + '\\Root'):
+            os.chdir('..')
+        else:
+            raise Exception('You are already in the Root')
+    else:
+        path = os.getcwd() + '/' + param
+        if os.path.isdir(path):
+            os.chdir(path)
+            print(os.getcwd())
+        else:
+            raise Exception('This is not a folder')
 
 def create_payload():
     global payload
@@ -85,52 +92,54 @@ def create_payload():
         try:
             content = ls()
             succesByte = '01000001'
-        except:
+        except Exception as e:
             # 10000001 - Server error response, eroare
             succesByte = '10000001'
-            print('Eroare la comanda')
+            print(str(e))
+
 
     if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'newFile':
         try:
             createFile(parameters)
             # 01000010 va insemna 'Fisier creat cu succes'
             succesByte = '01000010'
-        except:
+        except Exception as e:
             # 10000010 - Server error response, va insemna 'Fisierul deja exista'
             succesByte = '10000010'
-            print('Eroare la comanda')
+            print(str(e))
 
     if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'pwd':
         try:
             content = pwd()
             # 01000001 inseamna succes
             succesByte = '01000001'
-        except:
+        except Exception as e:
             # 10000001 - Server error response, eroare
             succesByte = '10000001'
-            print('Eroare la comanda')
+            print(str(e))
 
     if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'newDir':
         try:
             createFolder(parameters)
             # 01000010
             succesByte = '01000010'
-        except:
+        except Exception as e:
             # 10000001 - Server error response, eroare la creare fisier
             succesByte = '10000010'
-            print('Eroare la comanda')
+            print(str(e))
 
     if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'cd':
         try:
             changeDirectory(parameters)
             # 01000010
             succesByte = '01000001'
-        except:
+        except Exception as e:
             # 10000001 - Server error response, eroare la creare fisier
             succesByte = '10000001'
-            print('Eroare la comanda')
+            print(str(e))
 
-    
+
+
 
     payload ={
         'content' : content
@@ -157,8 +166,8 @@ def create_header():
 
 def verificare_parola(username,password):
     #deschidere fisier care contine usernames si parole lista[i] username=parola
-    db = open('usernames.txt', 'r')
-    db2= open('usernames.txt','a')
+    db = open(original_path + '\\usernames.txt', 'r')
+    db2= open(original_path + '\\usernames.txt','a')
     lista = db.readlines()
 
     global Code
@@ -284,7 +293,9 @@ s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 s.bind(('0.0.0.0', int(sport)))
 
 running = True
-currentDirectory = os.getcwd() + '/Root'
+original_path = os.getcwd()
+path = os.getcwd() + '\\Root'
+os.chdir(path)
 
 try:
     receive_thread = threading.Thread(target=receive_fct)
