@@ -4,6 +4,7 @@ import select
 import threading
 import json
 import os
+import shutil
 
 #mai intai ack si dupa pachet
 global payload
@@ -30,7 +31,6 @@ def first_byte():
     byte+=Request_Type
     #TOKEN LENGTH
     token_length = "0100"
-
     byte+=token_length
     return byte
 #code
@@ -39,11 +39,14 @@ def second_byte():
     global succesByte
     return succesByte
 
+
 #third and fourth byte
 def message_ID():
    return messageID
+
 def get_token():
     return token
+
 def delimitation_byte():
     byte = "11111111"
     return byte
@@ -78,6 +81,45 @@ def changeDirectory(param):
         else:
             raise Exception('This is not a folder')
 
+def readText(param):
+    data = ""
+    for root, dirs, files in os.walk(path):
+        if param in files:
+            text_file = open(param, "r")
+            # read whole file to a string
+            data = text_file.read()
+            data = data.replace('\\n', '\n').replace('\\t', '\t')
+            # close file
+            text_file.close()
+            return data
+        else:
+            raise Exception('File does not exist, check spelling!')
+
+def remove(param):
+
+    for root, dirs, files in os.walk(path):
+        print(dirs)
+        if param in files:
+            cale = os.getcwd() + "\\" + param
+            os.remove(cale)
+        elif param in dirs:
+            cale = os.getcwd() + "\\" + param
+            shutil.rmtree(cale)
+        else:
+            raise Exception('File not found!')
+
+
+def write(param):
+    split_param = param.split(" ",1)
+    file_name = split_param[0]
+    message = split_param[1]
+    for root, dirs, files in os.walk(path):
+        if file_name in files:
+            f = open(file_name, "a")
+            f.write(message)
+            f.close()
+        else:
+            raise Exception('Can not write!')
 def create_payload():
     global payload
     global Code
@@ -87,7 +129,8 @@ def create_payload():
     parameters = payload['parameters']
     print(parameters)
     content = []
-
+    print("Code: ", Code)
+    print(command)
     if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'ls':
         try:
             content = ls()
@@ -138,8 +181,28 @@ def create_payload():
             succesByte = '10000001'
             print(str(e))
 
+    if Code.replace(" ","") == '00000001' and command.replace(" ","") == 'readText':
+        try:
+            content = readText(parameters)
+            succesByte = '01000001'
+        except Exception as e:
+            succesByte = '10000001'
+            print(str(e))
 
-
+    if Code.replace(" ","") == '00000100' and command.replace(" ","") == 'rm':
+        try:
+            remove(parameters)
+            succesByte = '01000100'
+        except Exception as e:
+            succesByte = '10000100'
+            print(str(e))
+    if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'write':
+        try:
+            write(parameters)
+            succesByte = '01000010'
+        except Exception as e:
+            succesByte = '10000010'
+            print(str(e))
 
     payload ={
         'content' : content
@@ -169,10 +232,11 @@ def verificare_parola(username,password):
     db = open(original_path + '\\usernames.txt', 'r')
     db2= open(original_path + '\\usernames.txt','a')
     lista = db.readlines()
-
+    global succesByte
     global Code
     if Code == '00010110': # codul 00010110 este pentru inregistrare
         acces = True
+        succesByte = '01010110'
         db2.write(username+"="+password+'\n')
     else:
         j = 0
@@ -266,7 +330,7 @@ def send_data(acces):
         #         message = create_header("conten1","content2")
         #         s.sendto(bytes(message, encoding="latin-1"), (dip, int(dport)))
         message = create_header()
-        print(message)
+        print("Mesaj: ",message)
         s.sendto(bytes(message, encoding="latin-1"), (dip, int(dport)))
     else:
         s.sendto(bytes("Acces denied",encoding="latin-1"),(dip, int(dport)))
