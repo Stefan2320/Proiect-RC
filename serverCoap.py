@@ -21,6 +21,7 @@ def string2bits(s):
 
 def bits2string(b):
     return ''.join([chr(int(x, 2)) for x in b])
+
 #version,type,token length
 def first_byte():
     byte=""
@@ -89,6 +90,7 @@ def readText(param):
             # read whole file to a string
             data = text_file.read()
             data = data.replace('\\n', '\n').replace('\\t', '\t')
+            print(data)
             # close file
             text_file.close()
             return data
@@ -96,7 +98,6 @@ def readText(param):
             raise Exception('File does not exist, check spelling!')
 
 def remove(param):
-
     for root, dirs, files in os.walk(path):
         print(dirs)
         if param in files:
@@ -131,6 +132,7 @@ def create_payload():
     content = []
     print("Code: ", Code)
     print(command)
+    error = ''
     if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'ls':
         try:
             content = ls()
@@ -139,6 +141,7 @@ def create_payload():
             # 10000001 - Server error response, eroare
             succesByte = '10000001'
             print(str(e))
+            error = str(e)
 
 
     if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'newFile':
@@ -150,6 +153,7 @@ def create_payload():
             # 10000010 - Server error response, va insemna 'Fisierul deja exista'
             succesByte = '10000010'
             print(str(e))
+            error = str(e)
 
     if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'pwd':
         try:
@@ -160,6 +164,7 @@ def create_payload():
             # 10000001 - Server error response, eroare
             succesByte = '10000001'
             print(str(e))
+            error = str(e)
 
     if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'newDir':
         try:
@@ -170,6 +175,7 @@ def create_payload():
             # 10000001 - Server error response, eroare la creare fisier
             succesByte = '10000010'
             print(str(e))
+            error = str(e)
 
     if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'cd':
         try:
@@ -180,6 +186,7 @@ def create_payload():
             # 10000001 - Server error response, eroare la creare fisier
             succesByte = '10000001'
             print(str(e))
+            error = str(e)
 
     if Code.replace(" ","") == '00000001' and command.replace(" ","") == 'readText':
         try:
@@ -188,6 +195,7 @@ def create_payload():
         except Exception as e:
             succesByte = '10000001'
             print(str(e))
+            error = str(e)
 
     if Code.replace(" ","") == '00000100' and command.replace(" ","") == 'rm':
         try:
@@ -196,6 +204,8 @@ def create_payload():
         except Exception as e:
             succesByte = '10000100'
             print(str(e))
+            error = str(e)
+
     if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'write':
         try:
             write(parameters)
@@ -203,17 +213,21 @@ def create_payload():
         except Exception as e:
             succesByte = '10000010'
             print(str(e))
+            error = str(e)
 
     payload ={
-        'content' : content
+        'content' : content,
+        'error' : error,
+        'command' : command.replace(" ", "")
     }
 
     payload_json = json.dumps(payload)
-    return payload_json
+    print(payload_json)
+    return string2bits(payload_json)
 
 # returneaza headerul
 def create_header():
-    header=""
+    header=[]
     """
     print("fb",first_byte())
     print(second_byte())
@@ -222,9 +236,15 @@ def create_header():
     print(delimitation_byte())
     """
     payload = create_payload()
-    header+=first_byte()+second_byte()+message_ID()+get_token()+delimitation_byte()
+    header.append(first_byte())
+    header.append(second_byte())
+    header.append(message_ID())
+    header.append(get_token())
+    header.append(delimitation_byte())
     for o in payload:
-        header+=o
+        header.append(o)
+
+
     return header
 
 def verificare_parola(username,password):
@@ -331,9 +351,9 @@ def send_data(acces):
         #         s.sendto(bytes(message, encoding="latin-1"), (dip, int(dport)))
         message = create_header()
         print("Mesaj: ",message)
-        s.sendto(bytes(message, encoding="latin-1"), (dip, int(dport)))
+        s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
     else:
-        s.sendto(bytes("Acces denied",encoding="latin-1"),(dip, int(dport)))
+        s.sendto(bytes("Acces denied",encoding="latin-1"), (dip, int(dport)))
 
 # Citire nr port din linia de comanda
 if len(sys.argv) != 4:
