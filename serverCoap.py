@@ -5,6 +5,7 @@ import threading
 import json
 import os
 import shutil
+from subprocess import Popen
 
 #mai intai ack si dupa pachet
 global payload
@@ -110,7 +111,7 @@ def remove(param):
             raise Exception('File not found!')
 
 
-def write(param):
+def append(param):
     split_param = param.split(" ",1)
     file_name = split_param[0]
     message = split_param[1]
@@ -120,7 +121,36 @@ def write(param):
             f.write(message)
             f.close()
         else:
+            raise Exception('Can not append!')
+
+def write(param):
+    split_param = param.split(" ",1)
+    file_name = split_param[0]
+    message = split_param[1]
+    for root, dirs, files in os.walk(path):
+        if file_name in files:
+            f = open(file_name, "r+")
+            f.truncate(0)
+            f.write(message)
+            f.close()
+        else:
             raise Exception('Can not write!')
+
+def run(param):
+    type = param[-4:]
+    print(type)
+    good = False
+    for root, dirs, files in os.walk(path):
+        if param in files:
+            if type == '.bat':
+                good = True
+                os.chdir(path)
+                os.startfile(param)
+        else:
+            if good == False:
+                print(good)
+                raise Exception('Can not run!')
+
 def create_payload():
     global payload
     global Code
@@ -206,12 +236,31 @@ def create_payload():
             print(str(e))
             error = str(e)
 
+    if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'append':
+        try:
+            append(parameters)
+            succesByte = '01000010'
+        except Exception as e:
+            succesByte = '10000010'
+            print(str(e))
+            error = str(e)
+
     if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'write':
         try:
             write(parameters)
             succesByte = '01000010'
         except Exception as e:
             succesByte = '10000010'
+            print(str(e))
+            error = str(e)
+
+
+    if Code.replace(" ", "") == '00010101' and command.replace(" ", "") == 'run':
+        try:
+            run(parameters)
+            succesByte = '01010101'
+        except Exception as e:
+            succesByte = '10010101'
             print(str(e))
             error = str(e)
 
