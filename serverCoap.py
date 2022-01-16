@@ -16,6 +16,9 @@ global token
 global inceput_payload
 global succesByte
 global currentDirectory
+# pe 0 numele fisierului, pe 1 continutul fisierului
+global copyContent
+copyContent = []
 
 def string2bits(s):
     return [bin(ord(x))[2:].zfill(8) for x in s]
@@ -62,6 +65,9 @@ def pwd():
     return os.getcwd()
 
 def createFile(fileName):
+    for root, dirs, files in os.walk(path):
+        if fileName in files:
+            raise Exception('File already exists!')
     f = open(os.getcwd() + '\\' + fileName, "x")
 
 def createFolder(folderName):
@@ -99,42 +105,51 @@ def readText(param):
             raise Exception('File does not exist, check spelling!')
 
 def remove(param):
+    error = True
     for root, dirs, files in os.walk(path):
-        print(dirs)
         if param in files:
+            error = False
             cale = os.getcwd() + "\\" + param
             os.remove(cale)
         elif param in dirs:
+            error = False
             cale = os.getcwd() + "\\" + param
             shutil.rmtree(cale)
-        else:
-            raise Exception('File not found!')
+
+    if error == True:
+        raise Exception('File not found!')
 
 
 def append(param):
     split_param = param.split(" ",1)
     file_name = split_param[0]
     message = split_param[1]
+    error = True
     for root, dirs, files in os.walk(path):
         if file_name in files:
+            error = False
             f = open(file_name, "a")
             f.write(message)
             f.close()
-        else:
-            raise Exception('Can not append!')
+
+    if error == True:
+        raise Exception('Can not append!')
 
 def write(param):
     split_param = param.split(" ",1)
     file_name = split_param[0]
     message = split_param[1]
+    error = True
     for root, dirs, files in os.walk(path):
+        print(files)
         if file_name in files:
+            error = False
             f = open(file_name, "r+")
             f.truncate(0)
             f.write(message)
             f.close()
-        else:
-            raise Exception('Can not write!')
+    if error == True:
+        raise Exception('Can not write!')
 
 def run(param):
     type = param[-4:]
@@ -146,10 +161,39 @@ def run(param):
                 good = True
                 os.chdir(path)
                 os.startfile(param)
-        else:
-            if good == False:
-                print(good)
-                raise Exception('Can not run!')
+
+    if good == False:
+        print(good)
+        raise Exception('Can not run!')
+
+
+def copy(param):
+    error = True
+    for root, dirs, files in os.walk(path):
+        if param in files:
+            global copyContent
+            error = False
+            text_file = open(param, "r")
+            data = text_file.read()
+            if copyContent:
+                copyContent[0] = param
+                copyContent[1] = data
+            else:
+                copyContent.append(param)
+                copyContent.append(data)
+            text_file.close()
+    if error == True:
+        raise Exception('File is not here!')
+
+def paste():
+    global copyContent
+    temp = copyContent[0].split(".", 1)
+    if len(temp) == 2:
+        copyContent[0] = temp[0] + '(copy).' + temp[1]
+    else:
+        copyContent[0] = copyContent[0] + '(copy)'
+    with open(copyContent[0], 'x') as f:
+        f.write(copyContent[1])
 
 def create_payload():
     global payload
@@ -263,6 +307,18 @@ def create_payload():
             succesByte = '10010101'
             print(str(e))
             error = str(e)
+
+    if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'copy':
+        try:
+            copy(parameters)
+            succesByte = '01000001'
+        except Exception as e:
+            succesByte = '10000001'
+            print(str(e))
+            error = str(e)
+
+    if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'paste':
+        paste()
 
     payload ={
         'content' : content,
