@@ -173,6 +173,7 @@ def copy(param):
         if param in files:
             global copyContent
             error = False
+            print("HERE")
             text_file = open(param, "r")
             data = text_file.read()
             if copyContent:
@@ -182,18 +183,28 @@ def copy(param):
                 copyContent.append(param)
                 copyContent.append(data)
             text_file.close()
+
     if error == True:
         raise Exception('File is not here!')
 
 def paste():
     global copyContent
-    temp = copyContent[0].split(".", 1)
-    if len(temp) == 2:
-        copyContent[0] = temp[0] + '(copy).' + temp[1]
-    else:
-        copyContent[0] = copyContent[0] + '(copy)'
-    with open(copyContent[0], 'x') as f:
-        f.write(copyContent[1])
+    error = True
+
+
+    for root, dirs, files in os.walk(path):
+        if copyContent[0] in files:
+            error = False
+            temp = copyContent[0].split(".", 1)
+            if len(temp) == 2:
+                copyContent[0] = temp[0] + '(copy).' + temp[1]
+            else:
+                copyContent[0] = copyContent[0] + '(copy)'
+            with open(copyContent[0], 'w') as f:
+                f.write(copyContent[1])
+
+    if error == True:
+        raise Exception('Wrong name for file!')
 
 def create_payload():
     global payload
@@ -318,8 +329,13 @@ def create_payload():
             error = str(e)
 
     if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'paste':
-        paste()
-
+        try:
+            paste()
+            succesByte = '01000010'
+        except Exception as e:
+            succesByte = '10000010'
+            print(str(e))
+            error = str(e)
     payload ={
         'content' : content,
         'error' : error,
@@ -362,7 +378,23 @@ def verificare_parola(username,password):
     if Code == '00010110': # codul 00010110 este pentru inregistrare
         acces = True
         succesByte = '01010110'
-        db2.write(username+"="+password+'\n')
+        repeating = False
+        print(lista)
+        for i in lista:
+            print(i)
+            temp = i.split("=",1)
+            print(temp)
+            temp[1] = temp[1][:-1]
+            print(temp)
+            if temp[0] == username and temp[1] == password:
+                acces = False
+                repeating = True
+                succesByte = '10010110'
+                print('already exists')
+
+
+        if repeating == False:
+            db2.write(username+"="+password+'\n')
     else:
         j = 0
         acces = False
