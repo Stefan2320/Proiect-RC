@@ -5,6 +5,7 @@ import threading
 import json
 import os
 import shutil
+import time
 from subprocess import Popen
 
 #mai intai ack si dupa pachet
@@ -16,6 +17,7 @@ global token
 global inceput_payload
 global succesByte
 global currentDirectory
+global responseType
 # pe 0 numele fisierului, pe 1 continutul fisierului
 global copyContent
 copyContent = []
@@ -28,12 +30,19 @@ def bits2string(b):
 
 #version,type,token length
 def first_byte():
+    global responseType
     byte=""
     #VERSION
     version="01"
     byte += version
     # Type: CON (00), NON (01), ACK (10), RES (11)
-    byte+=Request_Type
+    if responseType == 'ACK':
+        byte+="10"
+    elif responseType == 'CON':
+        byte+="00"
+    else:
+        byte+=Request_Type
+
     #TOKEN LENGTH
     token_length = "0100"
     byte+=token_length
@@ -210,7 +219,8 @@ def create_payload():
     global payload
     global Code
     global succesByte
-
+    global responseType
+    print(payload)
     command = payload['command']
     parameters = payload['parameters']
     print(parameters)
@@ -218,131 +228,139 @@ def create_payload():
     print("Code: ", Code)
     print(command)
     error = ''
-    if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'ls':
-        try:
-            content = ls()
-            succesByte = '01000001'
-        except Exception as e:
-            # 10000001 - Server error response, eroare
-            succesByte = '10000001'
-            print(str(e))
-            error = str(e)
+
+    if responseType == 'ACK':
+        succesByte = '01000000'
+    elif responseType == 'CON' or responseType == 'NON':
+        if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'ls':
+            try:
+                content = ls()
+                succesByte = '01000001'
+            except Exception as e:
+                # 10000001 - Server error response, eroare
+                succesByte = '10000001'
+                print(str(e))
+                error = str(e)
 
 
-    if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'newFile':
-        try:
-            createFile(parameters)
-            # 01000010 va insemna 'Fisier creat cu succes'
-            succesByte = '01000010'
-        except Exception as e:
-            # 10000010 - Server error response, va insemna 'Fisierul deja exista'
-            succesByte = '10000010'
-            print(str(e))
-            error = str(e)
+        if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'newFile':
+            try:
+                createFile(parameters)
+                # 01000010 va insemna 'Fisier creat cu succes'
+                succesByte = '01000010'
+            except Exception as e:
+                # 10000010 - Server error response, va insemna 'Fisierul deja exista'
+                succesByte = '10000010'
+                print(str(e))
+                error = str(e)
 
-    if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'pwd':
-        try:
-            content = pwd()
-            # 01000001 inseamna succes
-            succesByte = '01000001'
-        except Exception as e:
-            # 10000001 - Server error response, eroare
-            succesByte = '10000001'
-            print(str(e))
-            error = str(e)
+        if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'pwd':
+            try:
+                content = pwd()
+                # 01000001 inseamna succes
+                succesByte = '01000001'
+            except Exception as e:
+                # 10000001 - Server error response, eroare
+                succesByte = '10000001'
+                print(str(e))
+                error = str(e)
 
-    if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'newDir':
-        try:
-            createFolder(parameters)
-            # 01000010
-            succesByte = '01000010'
-        except Exception as e:
-            # 10000001 - Server error response, eroare la creare fisier
-            succesByte = '10000010'
-            print(str(e))
-            error = str(e)
+        if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'newDir':
+            try:
+                createFolder(parameters)
+                # 01000010
+                succesByte = '01000010'
+            except Exception as e:
+                # 10000001 - Server error response, eroare la creare fisier
+                succesByte = '10000010'
+                print(str(e))
+                error = str(e)
 
-    if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'cd':
-        try:
-            changeDirectory(parameters)
-            # 01000010
-            succesByte = '01000001'
-        except Exception as e:
-            # 10000001 - Server error response, eroare la creare fisier
-            succesByte = '10000001'
-            print(str(e))
-            error = str(e)
+        if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'cd':
+            try:
+                changeDirectory(parameters)
+                # 01000010
+                succesByte = '01000001'
+            except Exception as e:
+                # 10000001 - Server error response, eroare la creare fisier
+                succesByte = '10000001'
+                print(str(e))
+                error = str(e)
 
-    if Code.replace(" ","") == '00000001' and command.replace(" ","") == 'readText':
-        try:
-            content = readText(parameters)
-            succesByte = '01000001'
-        except Exception as e:
-            succesByte = '10000001'
-            print(str(e))
-            error = str(e)
+        if Code.replace(" ","") == '00000001' and command.replace(" ","") == 'readText':
+            try:
+                content = readText(parameters)
+                succesByte = '01000001'
+            except Exception as e:
+                succesByte = '10000001'
+                print(str(e))
+                error = str(e)
 
-    if Code.replace(" ","") == '00000100' and command.replace(" ","") == 'rm':
-        try:
-            remove(parameters)
-            succesByte = '01000100'
-        except Exception as e:
-            succesByte = '10000100'
-            print(str(e))
-            error = str(e)
+        if Code.replace(" ","") == '00000100' and command.replace(" ","") == 'rm':
+            try:
+                remove(parameters)
+                succesByte = '01000100'
+            except Exception as e:
+                succesByte = '10000100'
+                print(str(e))
+                error = str(e)
 
-    if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'append':
-        try:
-            append(parameters)
-            succesByte = '01000010'
-        except Exception as e:
-            succesByte = '10000010'
-            print(str(e))
-            error = str(e)
+        if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'append':
+            try:
+                append(parameters)
+                succesByte = '01000010'
+            except Exception as e:
+                succesByte = '10000010'
+                print(str(e))
+                error = str(e)
 
-    if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'write':
-        try:
-            write(parameters)
-            succesByte = '01000010'
-        except Exception as e:
-            succesByte = '10000010'
-            print(str(e))
-            error = str(e)
+        if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'write':
+            try:
+                write(parameters)
+                succesByte = '01000010'
+            except Exception as e:
+                succesByte = '10000010'
+                print(str(e))
+                error = str(e)
 
 
-    if Code.replace(" ", "") == '00010101' and command.replace(" ", "") == 'run':
-        try:
-            run(parameters)
-            succesByte = '01010101'
-        except Exception as e:
-            succesByte = '10010101'
-            print(str(e))
-            error = str(e)
+        if Code.replace(" ", "") == '00010101' and command.replace(" ", "") == 'run':
+            try:
+                run(parameters)
+                succesByte = '01010101'
+            except Exception as e:
+                succesByte = '10010101'
+                print(str(e))
+                error = str(e)
 
-    if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'copy':
-        try:
-            copy(parameters)
-            succesByte = '01000001'
-        except Exception as e:
-            succesByte = '10000001'
-            print(str(e))
-            error = str(e)
+        if Code.replace(" ", "") == '00000001' and command.replace(" ", "") == 'copy':
+            try:
+                copy(parameters)
+                succesByte = '01000001'
+            except Exception as e:
+                succesByte = '10000001'
+                print(str(e))
+                error = str(e)
 
-    if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'paste':
-        try:
-            paste()
-            succesByte = '01000010'
-        except Exception as e:
-            succesByte = '10000010'
-            print(str(e))
-            error = str(e)
-    payload ={
+        if Code.replace(" ", "") == '00000010' and command.replace(" ", "") == 'paste':
+            try:
+                paste()
+                succesByte = '01000010'
+            except Exception as e:
+                succesByte = '10000010'
+                print(str(e))
+                error = str(e)
+
+
+
+    payload2 = {
         'content' : content,
         'error' : error,
         'command' : command.replace(" ", "")
     }
 
-    payload_json = json.dumps(payload)
+
+    payload_json = json.dumps(payload2)
     print(payload_json)
     return string2bits(payload_json)
 
@@ -434,6 +452,7 @@ def receive_fct():
             CoAp_Version= CoApVs_Type_TokenLen[0] + CoApVs_Type_TokenLen[1]
             global Request_Type
             Request_Type = CoApVs_Type_TokenLen[2] + CoApVs_Type_TokenLen[3]
+            
             global inceput_payload
             inceput_payload = 4 + 1 + token_length  # 4 octeti + octetul cu "11111111" + nr_octeti_token
             global Code
@@ -469,26 +488,20 @@ def receive_fct():
 
 def send_data(acces):
     global Request_Type
+    global responseType
     if acces == True:
-        # if Request_Type == "00":
-        #     random=0
-        #     if random == 0:
-        #         Request_Type = "10"
-        #         # content-ul va fi gol
-        #         message = create_header("ACK"," ")
-        #         s.sendto(bytes(message, encoding="latin-1"), (dip, int(dport)))
-        #         Request_Type = "00"
-        #         # aici va fi contentul
-        #         message1 = create_header("content1","content2")
-        #         s.sendto(bytes(message1, encoding="latin-1"), (dip, int(dport)))
-        #     else:
-        #         Request_Type= "10"
-        #         # va fi ack + content
-        #         message = create_header("conten1","content2")
-        #         s.sendto(bytes(message, encoding="latin-1"), (dip, int(dport)))
-        message = create_header()
-        print("Mesaj: ",message)
-        s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
+        if Request_Type == "00":
+            responseType = "ACK"
+            message = create_header()
+            print("Mesaj: ",message)
+            s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
+            time.sleep(2)
+            responseType = "CON"
+            message = create_header()
+            print("Mesaj: ", message)
+            s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
+
+
     else:
         s.sendto(bytes("Acces denied",encoding="latin-1"), (dip, int(dport)))
 
