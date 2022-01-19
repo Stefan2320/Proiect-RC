@@ -11,6 +11,7 @@ from subprocess import Popen
 #mai intai ack si dupa pachet
 global payload
 global Request_Type
+Request_Type = ""
 global Code
 global messageID
 global token
@@ -18,6 +19,11 @@ global inceput_payload
 global succesByte
 global currentDirectory
 global responseType
+global asteapta
+asteapta = 0
+global timp
+timp = 0
+
 # pe 0 numele fisierului, pe 1 continutul fisierului
 global copyContent
 copyContent = []
@@ -35,7 +41,7 @@ def first_byte():
     #VERSION
     version="01"
     byte += version
-    # Type: CON (00), NON (01), ACK (10), RES (11)
+    # Type: CON (00), NON (01), ACK (10)
     if responseType == 'ACK':
         byte+="10"
     elif responseType == 'CON':
@@ -433,10 +439,29 @@ def verificare_parola(username,password):
 
 def receive_fct():
     global running
+    global timp
+    global Request_Type
+    global  asteapta
     contor = 0
     while running:
         # Apelam la functia sistem IO -select- pentru a verifca daca socket-ul are date in bufferul de receptie
-        # Stabilim un timeout de 1 secunda
+        # Stabilim un timeout de 1
+
+        timp2 = time.time()
+
+        print("Timp trecut de la primirea unui CON",abs(timp-timp2))
+
+        if Request_Type == "10" and asteapta == 1:
+            asteapta = 0
+
+
+        if asteapta == 1 and abs(timp-timp2) >=5:
+            if abs(timp-timp2) >=20 :
+                asteapta = 0
+                print("Eroare la client")
+            s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
+    
+
         r, _, _ = select.select([s], [], [], 1)
         if not r:
             contor = contor + 1
@@ -450,9 +475,7 @@ def receive_fct():
             CoApVs_Type_TokenLen = primii_octeti[0]
             token_length = int(CoApVs_Type_TokenLen[4] + CoApVs_Type_TokenLen[5] + CoApVs_Type_TokenLen[6] + CoApVs_Type_TokenLen[7], 2)
             CoAp_Version= CoApVs_Type_TokenLen[0] + CoApVs_Type_TokenLen[1]
-            global Request_Type
             Request_Type = CoApVs_Type_TokenLen[2] + CoApVs_Type_TokenLen[3]
-            
             global inceput_payload
             inceput_payload = 4 + 1 + token_length  # 4 octeti + octetul cu "11111111" + nr_octeti_token
             global Code
@@ -489,6 +512,8 @@ def receive_fct():
 def send_data(acces):
     global Request_Type
     global responseType
+    global asteapta
+    global timp
     if acces == True:
         if Request_Type == "00":
             responseType = "ACK"
@@ -497,8 +522,13 @@ def send_data(acces):
             s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
             time.sleep(2)
             responseType = "CON"
+            asteapta = 1
+            timp= time.time()
             message = create_header()
             print("Mesaj: ", message)
+            s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
+        elif Request_Type == "01":
+            message = create_header()
             s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
 
 
