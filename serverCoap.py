@@ -41,7 +41,7 @@ def first_byte():
     #VERSION
     version="01"
     byte += version
-    # Type: CON (00), NON (01), ACK (10)
+    # Type: CON (00), NON (01), ACK (10), RES (11)
     if responseType == 'ACK':
         byte+="10"
     elif responseType == 'CON':
@@ -451,6 +451,11 @@ def receive_fct():
 
         print("Timp trecut de la primirea unui CON",abs(timp-timp2))
 
+        if abs(timp - timp2) >= 20:
+            asteapta = 0
+            timp2 = time.time()
+            timp = time.time()
+
         if Request_Type == "10" and asteapta == 1:
             asteapta = 0
 
@@ -460,7 +465,7 @@ def receive_fct():
                 asteapta = 0
                 print("Eroare la client")
             s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
-    
+
 
         r, _, _ = select.select([s], [], [], 1)
         if not r:
