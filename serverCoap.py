@@ -52,6 +52,7 @@ def first_byte():
     #TOKEN LENGTH
     token_length = "0100"
     byte+=token_length
+    print("FIRST BYTE = " + byte)
     return byte
 #code
 def second_byte():
@@ -106,8 +107,10 @@ def changeDirectory(param):
 
 def readText(param):
     data = ""
+    error = True
     for root, dirs, files in os.walk(path):
         if param in files:
+            error = False
             text_file = open(param, "r")
             # read whole file to a string
             data = text_file.read()
@@ -116,8 +119,8 @@ def readText(param):
             # close file
             text_file.close()
             return data
-        else:
-            raise Exception('File does not exist, check spelling!')
+    if error == True:
+        raise Exception('File does not exist, check spelling!')
 
 def remove(param):
     error = True
@@ -168,17 +171,15 @@ def write(param):
 
 def run(param):
     type = param[-4:]
-    print(type)
     good = False
+    print("Cale "+path)
     for root, dirs, files in os.walk(path):
         if param in files:
             if type == '.bat':
                 good = True
-                os.chdir(path)
                 os.startfile(param)
 
     if good == False:
-        print(good)
         raise Exception('Can not run!')
 
 
@@ -205,8 +206,6 @@ def copy(param):
 def paste():
     global copyContent
     error = True
-
-
     for root, dirs, files in os.walk(path):
         if copyContent[0] in files:
             error = False
@@ -357,7 +356,8 @@ def create_payload():
                 print(str(e))
                 error = str(e)
 
-
+        if succesByte == '10010110':
+            error="Account already registered!"
 
     payload2 = {
         'content' : content,
@@ -403,19 +403,13 @@ def verificare_parola(username,password):
         acces = True
         succesByte = '01010110'
         repeating = False
-        print(lista)
         for i in lista:
-            print(i)
             temp = i.split("=",1)
-            print(temp)
             temp[1] = temp[1][:-1]
-            print(temp)
             if temp[0] == username and temp[1] == password:
                 acces = False
                 repeating = True
                 succesByte = '10010110'
-                print('already exists')
-
 
         if repeating == False:
             db2.write(username+"="+password+'\n')
@@ -449,9 +443,10 @@ def receive_fct():
 
         timp2 = time.time()
 
-        print("Timp trecut de la primirea unui CON",abs(timp-timp2))
+        #print("Timp trecut de la primirea unui CON",abs(timp-timp2))
 
         if abs(timp - timp2) >= 20:
+            #print("Se reseteaza timerul")
             asteapta = 0
             timp2 = time.time()
             timp = time.time()
@@ -464,6 +459,7 @@ def receive_fct():
             if abs(timp-timp2) >=20 :
                 asteapta = 0
                 print("Eroare la client")
+            message = create_header()
             s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
 
 
@@ -483,6 +479,7 @@ def receive_fct():
             Request_Type = CoApVs_Type_TokenLen[2] + CoApVs_Type_TokenLen[3]
             global inceput_payload
             inceput_payload = 4 + 1 + token_length  # 4 octeti + octetul cu "11111111" + nr_octeti_token
+
             global Code
             Code = primii_octeti[1]
             global messageID
@@ -533,12 +530,15 @@ def send_data(acces):
             print("Mesaj: ", message)
             s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
         elif Request_Type == "01":
+            responseType = "NON"
             message = create_header()
             s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
 
 
     else:
-        s.sendto(bytes("Acces denied",encoding="latin-1"), (dip, int(dport)))
+        responseType = "NON"
+        message = create_header()
+        s.sendto(bytes(str(message), encoding="latin-1"), (dip, int(dport)))
 
 # Citire nr port din linia de comanda
 if len(sys.argv) != 4:
